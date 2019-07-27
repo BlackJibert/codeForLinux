@@ -32,7 +32,7 @@
 {% block content %}
 <div class="container">
 
-    {% for meassage in flash_get_messages() %}
+    {% for message in get_flashed_messages() %}
         <div class="alert alert-warning">
             <button type="button" class="close" data-dismiss="alert">
                 &times;
@@ -41,7 +41,6 @@
         </div>
     {% endfor %}
     {% block page_content %}{% endblock %}
-    }
 </div>
 {% endblock %}
 
