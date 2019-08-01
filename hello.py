@@ -7,6 +7,8 @@ from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 import os 
 
+from flask_migrate import Migrate, MigrateCommand
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
@@ -17,6 +19,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 db=SQLAlchemy(app)
+migrate = Migrate(app, db)
+
 
 class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
@@ -39,6 +43,10 @@ class User(db.Model):
 
 	def __repr__(self):
 		return '<User %r>' %self.username
+@app.shell_context_processor
+def make_shell_context():
+	return dict(db=db, User=User, Role=Role)
+	
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
