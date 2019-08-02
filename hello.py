@@ -9,6 +9,10 @@ import os
 
 from flask_migrate import Migrate, MigrateCommand
 
+from flask_mail import Mail,Message
+from flask_script import Manager
+
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
@@ -16,11 +20,22 @@ app.config['SECRET_KEY'] = 'hard to guess string'
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///' +os.path.join(basedir, 'data.sqlite')
 # app.config['SQLAlCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['MAIL_SERVER'] = 'smtp.qq.com'
+app.config['MAIL_PORT'] = 25
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[Flasky]'
+app.config['FLASKY_MAIL_SENDER'] = '1257699625@qq.com'
+app.config['FLASKY_ADMIN'] = os.environ.get('FLASK_ADMIN')
+
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 db=SQLAlchemy(app)
+manager = Manager(app)
 migrate = Migrate(app, db)
-
+mail = Mail(app)
 
 class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
@@ -43,10 +58,18 @@ class User(db.Model):
 
 	def __repr__(self):
 		return '<User %r>' %self.username
+
+def send_email(to, subject, template, **kwargs):
+    msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject,
+                  sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    mail.send(msg)
+
 @app.shell_context_processor
 def make_shell_context():
 	return dict(db=db, User=User, Role=Role)
-	
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
@@ -66,6 +89,8 @@ def index():
         	user=User(username = form.name.data)
         	db.session.add(user)
         	session['known'] = False
+        	if app.config['FLASKY_ADMIN']:
+        		send_email(app.config['FLASKY_ADMIN'], 'New User', 'mail/new_user', user=user)
         else:
         	session['known'] = True
         session['name'] = form.name.data
@@ -73,3 +98,6 @@ def index():
         return redirect(url_for('index'))
     return render_template('index.html', form=form, name=session.get('name'), known = session.get('known', False))
 
+
+if __name__ == '__main__':
+	manager.run()
