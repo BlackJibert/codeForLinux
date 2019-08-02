@@ -21,7 +21,7 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     password_hash = db.Column(db.String(128))
 
-    @propertys
+    @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
     
@@ -35,6 +35,6 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
-@login_manager
+@login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
